@@ -27,34 +27,16 @@ namespace Captcha
         {
             var answer = GenerateAnswer(option.Type, option.CharCount);
             var size = CalcSize(option.CharCount, option.FontSize);
-            var width = size[0];
-            var height = size[1];
-            using (var img = new Image<Rgba32>(width, height))
+            using (var img = new Image<Rgba32>(size[0], size[1]))
             {
-                var fontFamilies = GetFontFamilies();
-                Random random = new Random();
-                img.Mutate(ctx => ctx.BackgroundColor(Color.WhiteSmoke));
-                var position = option.FontSize/2;
-                var y = option.FontSize / 2;
-                foreach (string c in answer)
-                {
-                    var font = SystemFonts.CreateFont(fontFamilies[random.Next(0, fontFamilies.Length)], option.FontSize, FontStyle.Regular);
-                    var location = new PointF(MarginX + position, y);
-                    img.Mutate(ctx => ctx.DrawText(c, font, new Color(new Argb32(0.0f, 0.0f, 1.0f)), location));
-                    position += option.FontSize*2;
-                }
+                DrawAnswer(img, answer, option);
 
-                using (var memstream = new MemoryStream())
+                return new CaptchaInfo
                 {
-                    await img.SaveAsJpegAsync(memstream);
-
-                    return new CaptchaInfo
-                    {
-                        Image = memstream.ToArray(),
-                        ContentType = ContentType,
-                        Answer = string.Join("", answer)
-                    };
-                }
+                    Image = await img.ToByteArray(),
+                    ContentType = ContentType,
+                    Answer = string.Join("", answer)
+                };
             }
         }
 
@@ -137,5 +119,48 @@ namespace Captcha
             return new int[] { width, height };
         }
         #endregion
+
+        #region Image Mutations
+        private void DrawAnswer(Image img, List<string> answer, CaptchaOption option)
+        {
+            var fontFamilies = GetFontFamilies();
+            Random random = new Random();
+            img.Mutate(ctx => ctx.BackgroundColor(Color.WhiteSmoke));
+            var position = option.FontSize / 2;
+            var y = option.FontSize / 2;
+            foreach (string c in answer)
+            {
+                var font = SystemFonts.CreateFont(fontFamilies[random.Next(0, fontFamilies.Length)], option.FontSize, Extensions.GetRandom<FontStyle>());
+                var location = new PointF(MarginX + position, y);
+                img.Mutate(ctx => ctx.DrawText(c, font, new Color(new Argb32(0.0f, 0.0f, 1.0f)), location));
+                position += option.FontSize * 2;
+            }
+        }
+
+        private void DrawDisturb(Image img)
+        {
+
+        }
+        #endregion
+    }
+
+    public static class Extensions
+    {
+        public static async Task<byte[]> ToByteArray(this Image img)
+        {
+            using (var memstream = new MemoryStream())
+            {
+                await img.SaveAsJpegAsync(memstream);
+                return memstream.ToArray();
+            }
+        }
+
+        public static TEnum GetRandom<TEnum>() where TEnum : Enum
+        {
+            var values = Enum.GetValues(typeof(TEnum));
+            Random rnd = new Random();
+            TEnum randomEnum = (TEnum)values.GetValue(rnd.Next(values.Length));
+            return randomEnum;
+        }
     }
 }

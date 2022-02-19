@@ -22,7 +22,7 @@ namespace Demo.Controllers
             {
                 Type = CaptchaTypes.Numeric | CaptchaTypes.UpperCase,
                 FontSize = 20,
-                CharCount = 4
+                CharCount = 6
             });
             return View(c);
         }
