@@ -20,11 +20,11 @@ namespace Demo.Controllers
         {
             CaptchaInfo c = await _captchaFactory.CreateAsync(new CaptchaOption
             {
-                Type = CaptchaTypes.Numeric | CaptchaTypes.ChineseNumeric,
+                Type = CaptchaTypes.Numeric | CaptchaTypes.UpperCase,
                 FontSize = 20,
                 CharCount = 4
             });
-            return View();
+            return View(c);
         }
 
         public IActionResult Privacy()
