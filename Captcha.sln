@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Captcha", "Captcha\Captcha.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo", "Demo\Demo.csproj", "{D77435F2-5BD0-499F-911C-758DB9472D31}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MinimalApi", "MinimalApi\MinimalApi.csproj", "{815BE0C4-D25C-4719-A732-F80BB09B1C15}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{D77435F2-5BD0-499F-911C-758DB9472D31}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D77435F2-5BD0-499F-911C-758DB9472D31}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D77435F2-5BD0-499F-911C-758DB9472D31}.Release|Any CPU.Build.0 = Release|Any CPU
+		{815BE0C4-D25C-4719-A732-F80BB09B1C15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{815BE0C4-D25C-4719-A732-F80BB09B1C15}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{815BE0C4-D25C-4719-A732-F80BB09B1C15}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{815BE0C4-D25C-4719-A732-F80BB09B1C15}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
