@@ -4,6 +4,7 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,6 +19,8 @@ namespace Captcha
         private readonly string[] _chineseNumbers = { "一", "二", "三", "四", "五", "六", "七", "八", "九", "零" };
         private const int MarginX = 0;
         private const int MarginY = 0;
+        private readonly Color[] _disturbColors = { Color.Red, Color.Blue, Color.Green };
+        private const int disturbLines = 10;
         public CaptchaFactory()
         {
 
@@ -30,7 +33,7 @@ namespace Captcha
             using (var img = new Image<Rgba32>(size[0], size[1]))
             {
                 DrawAnswer(img, answer, option);
-
+                DrawDisturb(img);
                 return new CaptchaInfo
                 {
                     Image = await img.ToByteArray(),
@@ -139,7 +142,16 @@ namespace Captcha
 
         private void DrawDisturb(Image img)
         {
-
+            Random random = new Random();
+            for (int i = 0; i < disturbLines; i++)
+            {
+                float thickness = random.Next(5, 10) / 10f;
+                int x1 = random.Next(img.Width);
+                int x2 = random.Next(img.Width);
+                int y1 = random.Next(img.Height);
+                int y2 = random.Next(img.Height);
+                img.Mutate(ctx => ctx.DrawLines(_disturbColors.GetRandom(), thickness, new PointF(x1, y1), new PointF(x2, y2)));
+            }            
         }
         #endregion
     }
@@ -155,12 +167,18 @@ namespace Captcha
             }
         }
 
-        public static TEnum GetRandom<TEnum>() where TEnum : Enum
+        public static TEnum GetRandom<TEnum>()
         {
             var values = Enum.GetValues(typeof(TEnum));
             Random rnd = new Random();
             TEnum randomEnum = (TEnum)values.GetValue(rnd.Next(values.Length));
             return randomEnum;
+        }
+
+        public static T GetRandom<T>(this IEnumerable<T> collection)
+        {
+            Random rnd = new Random();
+            return collection.ToArray()[rnd.Next(collection.Count())];
         }
     }
 }
