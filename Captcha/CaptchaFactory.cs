@@ -34,6 +34,7 @@ namespace Captcha
             {
                 DrawAnswer(img, answer, option);
                 DrawDisturb(img);
+
                 return new CaptchaInfo
                 {
                     Image = await img.ToByteArray(),
@@ -129,15 +130,34 @@ namespace Captcha
             var fontFamilies = GetFontFamilies();
             Random random = new Random();
             img.Mutate(ctx => ctx.BackgroundColor(Color.WhiteSmoke));
-            var position = option.FontSize / 2;
-            var y = option.FontSize / 2;
-            foreach (string c in answer)
+
+            // Write Text into new img, rotate it, then write rotated text img to result img
+            using (var textImg = new Image<Rgba32>(img.Width, img.Height))
             {
-                var font = SystemFonts.CreateFont(fontFamilies[random.Next(0, fontFamilies.Length)], option.FontSize, Extensions.GetRandom<FontStyle>());
-                var location = new PointF(MarginX + position, y);
-                img.Mutate(ctx => ctx.DrawText(c, font, new Color(new Argb32(0.0f, 0.0f, 1.0f)), location));
-                position += option.FontSize * 2;
+                var position = option.FontSize / 2;
+                var y = option.FontSize / 2;
+                foreach (string c in answer)
+                {
+                    var font = SystemFonts.CreateFont(fontFamilies[random.Next(0, fontFamilies.Length)], option.FontSize, Extensions.GetRandom<FontStyle>());
+                    var location = new PointF(MarginX + position, y);
+                    textImg.Mutate(ctx => ctx.DrawText(c, font, new Color(new Argb32(0.0f, 0.0f, 1.0f)), location));
+                    position += option.FontSize * 2;
+                }
+
+                Random r = new Random();
+                textImg.Mutate(ctx => ctx.Transform(new AffineTransformBuilder().AppendMatrix(new System.Numerics.Matrix3x2
+                {
+                    M11 = 0.9f,
+                    M12 = r.Next(-5, 5) / 100f,
+                    M21 = r.Next(-1, 1) / 10f,
+                    M22 = 0.9f,
+                    M31 = 8.0f,
+                    M32 = 45.0f
+                })));
+
+                img.Mutate(ctx => ctx.DrawImage(textImg, location: new Point(0, -(textImg.Height / 2)), 1));
             }
+
         }
 
         private void DrawDisturb(Image img)
@@ -151,7 +171,7 @@ namespace Captcha
                 int y1 = random.Next(img.Height);
                 int y2 = random.Next(img.Height);
                 img.Mutate(ctx => ctx.DrawLines(_disturbColors.GetRandom(), thickness, new PointF(x1, y1), new PointF(x2, y2)));
-            }            
+            }
         }
         #endregion
     }
