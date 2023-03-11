@@ -9,5 +9,5 @@
     <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
 </div>
 
-<img src="data:image;base64,@System.Convert.ToBase64String(Model.Image)" />
+<img src="data:image;base64,@System.Convert.ToBase64String(Model.Image!)" />
 @Model.Answer

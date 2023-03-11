@@ -21,7 +21,7 @@ namespace Captcha
         private const int MarginX = 0;
         private const int MarginY = 0;
         private readonly Color[] _disturbColors = { Color.Red, Color.Blue, Color.Green };
-        private const int disturbLines = 10;
+        private const int DisturbLines = 10;
 
         public CaptchaFactory()
         {
@@ -31,18 +31,16 @@ namespace Captcha
         {
             var answer = GenerateAnswer(option.Type, option.CharCount);
             var size = CalcSize(option.CharCount, option.FontSize);
-            using (var img = new Image<Rgba32>(size[0], size[1]))
-            {
-                DrawAnswer(img, answer, option);
-                DrawDisturb(img);
+            using var img = new Image<Rgba32>(size[0], size[1]);
+            DrawAnswer(img, answer, option);
+            DrawDisturb(img);
 
-                return new CaptchaInfo
-                {
-                    Image = await img.ToByteArray(),
-                    ContentType = ContentType,
-                    Answer = string.Join("", answer)
-                };
-            }
+            return new CaptchaInfo
+            {
+                Image = await img.ToByteArray(),
+                ContentType = ContentType,
+                Answer = string.Join("", answer)
+            };
         }
 
         #region Setups
@@ -50,9 +48,9 @@ namespace Captcha
         private List<string> GenerateAnswer(CaptchaTypes type, int length)
         {
             var charset = GetCharSet(type);
-            List<string> answer = new List<string>();
-            Random random = new Random();
-            for (int i = 0; i < length; i++)
+            var answer = new List<string>();
+            var random = new Random();
+            for (var i = 0; i < length; i++)
             {
                 answer.Add(charset[random.Next(charset.Length)]);
             }
@@ -66,18 +64,18 @@ namespace Captcha
 
         private string[] GetCharSet(CaptchaTypes types)
         {
-            List<string> result = new List<string>();
+            var result = new List<string>();
             if (types.HasFlag(CaptchaTypes.Numeric))
             {
                 // Skip 0 if hybrid type
-                int startNum = types == CaptchaTypes.Numeric ? 0 : 1;
-                string[] arr = Enumerable.Range(startNum, 9).Select(n => n.ToString()).ToArray();
+                var startNum = types == CaptchaTypes.Numeric ? 0 : 1;
+                var arr = Enumerable.Range(startNum, 9).Select(n => n.ToString()).ToArray();
                 result.AddRange(arr);
             }
 
             if (types.HasFlag(CaptchaTypes.UpperCase))
             {
-                for (char i = 'A'; i < 'Z'; i++)
+                for (var i = 'A'; i < 'Z'; i++)
                 {
                     // Skip O if hybrid type
                     if (i == 'O' && types != CaptchaTypes.UpperCase)
@@ -88,7 +86,7 @@ namespace Captcha
 
             if (types.HasFlag(CaptchaTypes.LowerCase))
             {
-                for (char i = 'a'; i < 'z'; i++)
+                for (var i = 'a'; i < 'z'; i++)
                 {
                     // Skip O if hybrid type
                     if (i == 'o' && types != CaptchaTypes.UpperCase)
@@ -106,21 +104,12 @@ namespace Captcha
             return result.ToArray();
         }
 
-        private string[] GetFontFamilies()
+        private static FontCollection GetOpenSansTcFontCollection()
         {
-            var targets = new string[] { "Arial", "Verdana", "Times New Roman" };
-            var systemProvided =
-                SystemFonts.Families.Where(f => targets.Contains(f.Name)).Select(f => f.Name).ToArray();
-
-            return systemProvided;
-        }
-
-        private FontCollection getOpenSansTcFontCollection()
-        {
-            FontCollection fonts = new FontCollection();
+            var fonts = new FontCollection();
             var dllPath = Assembly.GetExecutingAssembly().Location;
             var dllFolder = Path.GetDirectoryName(dllPath);
-            FontFamily font = fonts.Add(dllFolder + "/Fonts/NotoSansTC-Regular.otf");
+            fonts.Add(dllFolder + "/Fonts/NotoSansTC-Regular.otf");
             return fonts;
         }
 
@@ -130,7 +119,7 @@ namespace Captcha
         /// <param name="charCount"></param>
         /// <param name="fontSize"></param>
         /// <returns></returns>
-        private int[] CalcSize(int charCount, int fontSize)
+        private static int[] CalcSize(int charCount, int fontSize)
         {
             var width = fontSize * charCount * 2 + MarginX * 2;
             var height = fontSize * 2 + MarginY * 2;
@@ -141,54 +130,53 @@ namespace Captcha
 
         #region Image Mutations
 
-        private void DrawAnswer(Image img, List<string> answer, CaptchaOption option)
+        private static void DrawAnswer(Image img, List<string> answer, CaptchaOption option)
         {
-            var openSans = getOpenSansTcFontCollection();
+            var openSans = GetOpenSansTcFontCollection();
 
             //var fontFamilies = GetFontFamilies();
-            Random random = new Random();
+            var random = new Random();
             img.Mutate(ctx => ctx.BackgroundColor(Color.WhiteSmoke));
 
             // Write Text into new img, rotate it, then write rotated text img to result img
-            using (var textImg = new Image<Rgba32>(img.Width, img.Height))
+            using var textImg = new Image<Rgba32>(img.Width, img.Height);
+            var position = option.FontSize / 2;
+            var y = option.FontSize / 2;
+            foreach (var c in answer)
             {
-                var position = option.FontSize / 2;
-                var y = option.FontSize / 2;
-                foreach (string c in answer)
-                {
-                    var font = new Font(openSans.Families.First(), (float)option.FontSize,
-                        Extensions.GetRandom<FontStyle>());
-                    var location = new PointF(MarginX + position, y);
-                    textImg.Mutate(ctx => ctx.DrawText(c, font, new Color(new Argb32(0.0f, 0.0f, 1.0f)), location));
-                    position += option.FontSize * 2;
-                }
-
-                Random r = new Random();
-                textImg.Mutate(ctx => ctx.Transform(new AffineTransformBuilder().AppendMatrix(
-                    new System.Numerics.Matrix3x2
-                    {
-                        M11 = 0.9f,
-                        M12 = r.Next(-5, 5) / 100f,
-                        M21 = r.Next(-1, 1) / 10f,
-                        M22 = 0.9f,
-                        M31 = 8.0f,
-                        M32 = 45.0f
-                    })));
-
-                img.Mutate(ctx => ctx.DrawImage(textImg, location: new Point(0, -(textImg.Height / 2)), 1));
+                var font = new Font(openSans.Families.First(), (float)option.FontSize,
+                    Extensions.GetRandom<FontStyle>());
+                var location = new PointF(MarginX + position, y);
+                textImg.Mutate(ctx => ctx.DrawText(c, font, new Color(new Argb32(0.0f, 0.0f, 1.0f)), location));
+                position += option.FontSize * 2;
             }
+
+            var r = new Random();
+            textImg.Mutate(ctx => ctx.Transform(new AffineTransformBuilder().AppendMatrix(
+                new System.Numerics.Matrix3x2
+                {
+                    M11 = 0.9f,
+                    M12 = r.Next(-5, 5) / 100f,
+                    M21 = r.Next(-1, 1) / 10f,
+                    M22 = 0.9f,
+                    M31 = 8.0f,
+                    M32 = 45.0f
+                })));
+            
+            var textImgCopy = textImg.Clone(); // Fix Access to disposed closure
+            img.Mutate(ctx => ctx.DrawImage(textImgCopy, location: new Point(0, -(textImgCopy.Height / 2)), 1));
         }
 
         private void DrawDisturb(Image img)
         {
-            Random random = new Random();
-            for (int i = 0; i < disturbLines; i++)
+            var random = new Random();
+            for (var i = 0; i < DisturbLines; i++)
             {
-                float thickness = random.Next(5, 10) / 10f;
-                int x1 = random.Next(img.Width);
-                int x2 = random.Next(img.Width);
-                int y1 = random.Next(img.Height);
-                int y2 = random.Next(img.Height);
+                var thickness = random.Next(5, 10) / 10f;
+                var x1 = random.Next(img.Width);
+                var x2 = random.Next(img.Width);
+                var y1 = random.Next(img.Height);
+                var y2 = random.Next(img.Height);
                 img.Mutate(ctx =>
                     ctx.DrawLines(_disturbColors.GetRandom(), thickness, new PointF(x1, y1), new PointF(x2, y2)));
             }
@@ -201,25 +189,24 @@ namespace Captcha
     {
         public static async Task<byte[]> ToByteArray(this Image img)
         {
-            using (var memstream = new MemoryStream())
-            {
-                await img.SaveAsJpegAsync(memstream);
-                return memstream.ToArray();
-            }
+            using var stream = new MemoryStream();
+            await img.SaveAsJpegAsync(stream);
+            return stream.ToArray();
         }
 
         public static TEnum GetRandom<TEnum>()
         {
             var values = Enum.GetValues(typeof(TEnum));
-            Random rnd = new Random();
-            TEnum randomEnum = (TEnum)values.GetValue(rnd.Next(values.Length));
+            var rnd = new Random();
+            var randomEnum = (TEnum)values.GetValue(rnd.Next(values.Length))!;
             return randomEnum;
         }
 
         public static T GetRandom<T>(this IEnumerable<T> collection)
         {
-            Random rnd = new Random();
-            return collection.ToArray()[rnd.Next(collection.Count())];
+            var rnd = new Random();
+            var enumerable = collection as T[] ?? collection.ToArray();
+            return enumerable.ToArray()[rnd.Next(enumerable.Length)];
         }
     }
 }
