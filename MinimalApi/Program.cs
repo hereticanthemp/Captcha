@@ -26,33 +26,41 @@ var summaries = new[]
 };
 
 app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-       new WeatherForecast
-       (
-           DateTime.Now.AddDays(index),
-           Random.Shared.Next(-20, 55),
-           summaries[Random.Shared.Next(summaries.Length)]
-       ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+    {
+        var forecast = Enumerable.Range(1, 5).Select(index =>
+                new WeatherForecast
+                (
+                    DateTime.Now.AddDays(index),
+                    Random.Shared.Next(-20, 55),
+                    summaries[Random.Shared.Next(summaries.Length)]
+                ))
+            .ToArray();
+        return forecast;
+    })
+    .WithName("GetWeatherForecast");
 
 app.MapGet("/Captcha", async () =>
-{
-    using (var scope = app.Services.CreateScope())
     {
-        var captcha = scope.ServiceProvider.GetRequiredService<ICaptchaFactory>();
-        return await captcha.CreateAsync(new CaptchaOption
+        using (var scope = app.Services.CreateScope())
         {
-            CharCount = 4,
-            FontSize = 20,
-            Type = CaptchaTypes.Numeric | CaptchaTypes.UpperCase | CaptchaTypes.Symbols
-        });
-    }
-})
-.WithName("GetCaptcha");
+            var captcha = scope.ServiceProvider.GetRequiredService<ICaptchaFactory>();
+            return await captcha.CreateAsync(new CaptchaOption
+            {
+                CharCount = 4,
+                FontSize = 20,
+                Type = CaptchaTypes.Numeric | CaptchaTypes.UpperCase | CaptchaTypes.Symbols
+            });
+        }
+    })
+    .WithName("GetCaptcha");
+
+app.MapPost("/Captcha", async (CaptchaOption opt) =>
+    {
+        using var scope = app.Services.CreateScope();
+        var captcha = scope.ServiceProvider.GetRequiredService<ICaptchaFactory>();
+        return await captcha.CreateAsync(opt);
+    })
+    .WithName("Captcha");
 
 app.Run();
 

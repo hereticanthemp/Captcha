@@ -7,6 +7,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -21,9 +22,9 @@ namespace Captcha
         private const int MarginY = 0;
         private readonly Color[] _disturbColors = { Color.Red, Color.Blue, Color.Green };
         private const int disturbLines = 10;
+
         public CaptchaFactory()
         {
-
         }
 
         public async Task<CaptchaInfo> CreateAsync(CaptchaOption option)
@@ -45,6 +46,7 @@ namespace Captcha
         }
 
         #region Setups
+
         private List<string> GenerateAnswer(CaptchaTypes type, int length)
         {
             var charset = GetCharSet(type);
@@ -54,13 +56,14 @@ namespace Captcha
             {
                 answer.Add(charset[random.Next(charset.Length)]);
             }
+
             return answer;
         }
-
 
         #endregion
 
         #region Foundations
+
         private string[] GetCharSet(CaptchaTypes types)
         {
             List<string> result = new List<string>();
@@ -106,8 +109,19 @@ namespace Captcha
         private string[] GetFontFamilies()
         {
             var targets = new string[] { "Arial", "Verdana", "Times New Roman" };
-            var systemProvided = SystemFonts.Families.Where(f => targets.Contains(f.Name)).Select(f => f.Name).ToArray();
+            var systemProvided =
+                SystemFonts.Families.Where(f => targets.Contains(f.Name)).Select(f => f.Name).ToArray();
+
             return systemProvided;
+        }
+
+        private FontCollection getOpenSansTcFontCollection()
+        {
+            FontCollection fonts = new FontCollection();
+            var dllPath = Assembly.GetExecutingAssembly().Location;
+            var dllFolder = Path.GetDirectoryName(dllPath);
+            FontFamily font = fonts.Add(dllFolder + "/Fonts/NotoSansTC-Regular.otf");
+            return fonts;
         }
 
         /// <summary>
@@ -122,12 +136,16 @@ namespace Captcha
             var height = fontSize * 2 + MarginY * 2;
             return new int[] { width, height };
         }
+
         #endregion
 
         #region Image Mutations
+
         private void DrawAnswer(Image img, List<string> answer, CaptchaOption option)
         {
-            var fontFamilies = GetFontFamilies();
+            var openSans = getOpenSansTcFontCollection();
+
+            //var fontFamilies = GetFontFamilies();
             Random random = new Random();
             img.Mutate(ctx => ctx.BackgroundColor(Color.WhiteSmoke));
 
@@ -138,26 +156,27 @@ namespace Captcha
                 var y = option.FontSize / 2;
                 foreach (string c in answer)
                 {
-                    var font = SystemFonts.CreateFont(fontFamilies[random.Next(0, fontFamilies.Length)], option.FontSize, Extensions.GetRandom<FontStyle>());
+                    var font = new Font(openSans.Families.First(), (float)option.FontSize,
+                        Extensions.GetRandom<FontStyle>());
                     var location = new PointF(MarginX + position, y);
                     textImg.Mutate(ctx => ctx.DrawText(c, font, new Color(new Argb32(0.0f, 0.0f, 1.0f)), location));
                     position += option.FontSize * 2;
                 }
 
                 Random r = new Random();
-                textImg.Mutate(ctx => ctx.Transform(new AffineTransformBuilder().AppendMatrix(new System.Numerics.Matrix3x2
-                {
-                    M11 = 0.9f,
-                    M12 = r.Next(-5, 5) / 100f,
-                    M21 = r.Next(-1, 1) / 10f,
-                    M22 = 0.9f,
-                    M31 = 8.0f,
-                    M32 = 45.0f
-                })));
+                textImg.Mutate(ctx => ctx.Transform(new AffineTransformBuilder().AppendMatrix(
+                    new System.Numerics.Matrix3x2
+                    {
+                        M11 = 0.9f,
+                        M12 = r.Next(-5, 5) / 100f,
+                        M21 = r.Next(-1, 1) / 10f,
+                        M22 = 0.9f,
+                        M31 = 8.0f,
+                        M32 = 45.0f
+                    })));
 
                 img.Mutate(ctx => ctx.DrawImage(textImg, location: new Point(0, -(textImg.Height / 2)), 1));
             }
-
         }
 
         private void DrawDisturb(Image img)
@@ -170,9 +189,11 @@ namespace Captcha
                 int x2 = random.Next(img.Width);
                 int y1 = random.Next(img.Height);
                 int y2 = random.Next(img.Height);
-                img.Mutate(ctx => ctx.DrawLines(_disturbColors.GetRandom(), thickness, new PointF(x1, y1), new PointF(x2, y2)));
+                img.Mutate(ctx =>
+                    ctx.DrawLines(_disturbColors.GetRandom(), thickness, new PointF(x1, y1), new PointF(x2, y2)));
             }
         }
+
         #endregion
     }
 

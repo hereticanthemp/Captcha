@@ -8,9 +8,16 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
-    <PackageReference Include="SixLabors.Fonts" Version="1.0.0-beta16" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="2.0.0" />
-    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="1.0.0-beta14" />
+    <PackageReference Include="SixLabors.Fonts" Version="1.0.0-beta19" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.0.0" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="1.0.0-beta15" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Fonts\NotoSansTC-Regular.otf" />
+    <Content Include="Fonts\NotoSansTC-Regular.otf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>
