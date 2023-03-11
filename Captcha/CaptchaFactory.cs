@@ -31,7 +31,7 @@ namespace Captcha
             var size = CalcSize(option.CharCount, option.FontSizePixel);
             using var img = new Image<Rgba32>(size[0], size[1]);
             DrawAnswer(img, answer, option);
-            //DrawDisturb(img);
+            DrawDisturb(img);
 
             return new CaptchaInfo
             {
@@ -183,18 +183,24 @@ namespace Captcha
             img.Mutate(ctx => ctx.DrawImage(textImgCopy, location: new Point(0, 0), 1));
         }
 
+
         private void DrawDisturb(Image img)
         {
             var random = new Random();
-            for (var i = 0; i < DisturbLines; i++)
+            var drew = 0;
+            while (drew < DisturbLines)
             {
                 var thickness = random.Next(5, 10) / 10f;
-                var x1 = random.Next(img.Width);
-                var x2 = random.Next(img.Width);
-                var y1 = random.Next(img.Height);
-                var y2 = random.Next(img.Height);
+
+                var p1 = new PointF(random.Next(img.Width), random.Next(img.Height));
+                var p2 = new PointF(random.Next(img.Width), random.Next(img.Height));
+                if (Vector2.Distance(p1, p2) < img.Height)
+                    continue;
+
                 img.Mutate(ctx =>
-                    ctx.DrawLines(_disturbColors.GetRandom(), thickness, new PointF(x1, y1), new PointF(x2, y2)));
+                    ctx.DrawLines(_disturbColors.GetRandom(), thickness, p1, p2));
+
+                drew++;
             }
         }
 
