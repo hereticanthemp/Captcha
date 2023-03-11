@@ -10,6 +10,8 @@ namespace Captcha
     {
         public CaptchaTypes Type { get; set; }
         public int CharCount { get; set; }
-        public int FontSize { get; set; }
+        public float FontSizePt { get; set; }
+
+        public float FontSizePixel => FontSizePt * 4 / 3;
     }
 }

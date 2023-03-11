@@ -7,6 +7,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,22 +19,19 @@ namespace Captcha
         private const string ContentType = "image/jpeg";
         private readonly string[] _symbols = { "@", "#", "$", "%", "&" };
         private readonly string[] _chineseNumbers = { "一", "二", "三", "四", "五", "六", "七", "八", "九", "零" };
-        private const int MarginX = 0;
-        private const int MarginY = 0;
+
+        private const float BoxSize = 1.5f; // For One Char, Leave 1.5 * FontPt (pixel)
+
         private readonly Color[] _disturbColors = { Color.Red, Color.Blue, Color.Green };
         private const int DisturbLines = 10;
-
-        public CaptchaFactory()
-        {
-        }
 
         public async Task<CaptchaInfo> CreateAsync(CaptchaOption option)
         {
             var answer = GenerateAnswer(option.Type, option.CharCount);
-            var size = CalcSize(option.CharCount, option.FontSize);
+            var size = CalcSize(option.CharCount, option.FontSizePixel);
             using var img = new Image<Rgba32>(size[0], size[1]);
             DrawAnswer(img, answer, option);
-            DrawDisturb(img);
+            //DrawDisturb(img);
 
             return new CaptchaInfo
             {
@@ -117,54 +115,72 @@ namespace Captcha
         /// Return Image Width and Height
         /// </summary>
         /// <param name="charCount"></param>
-        /// <param name="fontSize"></param>
+        /// <param name="fontSizePt"></param>
         /// <returns></returns>
-        private static int[] CalcSize(int charCount, int fontSize)
+        private static int[] CalcSize(int charCount, float fontSizePt)
         {
-            var width = fontSize * charCount * 2 + MarginX * 2;
-            var height = fontSize * 2 + MarginY * 2;
-            return new int[] { width, height };
+            var width = fontSizePt * charCount * BoxSize;
+            return new[] { (int)width, (int)(fontSizePt * BoxSize) };
         }
 
         #endregion
 
         #region Image Mutations
 
-        private static void DrawAnswer(Image img, List<string> answer, CaptchaOption option)
+        private static void DrawAnswer(Image<Rgba32> img, List<string> answer, CaptchaOption option)
         {
+            var r = new Random();
             var openSans = GetOpenSansTcFontCollection();
 
-            //var fontFamilies = GetFontFamilies();
-            var random = new Random();
             img.Mutate(ctx => ctx.BackgroundColor(Color.WhiteSmoke));
 
-            // Write Text into new img, rotate it, then write rotated text img to result img
-            using var textImg = new Image<Rgba32>(img.Width, img.Height);
-            var position = option.FontSize / 2;
-            var y = option.FontSize / 2;
+            using var textImg = img.Clone();
+
+            var drawPosition = new PointF(0, 0); // Every Font Box Left Top Corner
+
             foreach (var c in answer)
             {
-                var font = new Font(openSans.Families.First(), (float)option.FontSize,
+                var font = new Font(openSans.Families.First(), (float)option.FontSizePt,
                     Extensions.GetRandom<FontStyle>());
-                var location = new PointF(MarginX + position, y);
-                textImg.Mutate(ctx => ctx.DrawText(c, font, new Color(new Argb32(0.0f, 0.0f, 1.0f)), location));
-                position += option.FontSize * 2;
+
+                var options = new TextOptions(font)
+                {
+                    Dpi = 72,
+                    KerningMode = KerningMode.Standard
+                };
+
+                var rect = TextMeasurer.Measure(c, options);
+
+                var rectDrawPoint = new PointF()
+                {
+                    X = drawPosition.X + option.FontSizePixel * BoxSize / 2 - rect.Width / 2,
+                    Y = drawPosition.Y + option.FontSizePixel * BoxSize / 2 - rect.Height / 2,
+                };
+
+                // Make word shift
+                var threshold = (int)(option.FontSizePixel / 3);
+                rectDrawPoint.X += r.Next(-threshold, threshold);
+                rectDrawPoint.Y += r.Next(-threshold, threshold);
+
+
+                var rectCenter = new PointF
+                {
+                    X = drawPosition.X + option.FontSizePixel * BoxSize / 2,
+                    Y = drawPosition.Y + option.FontSizePixel * BoxSize / 2,
+                };
+
+
+                textImg.Mutate(
+                    ctx => ctx
+                        .SetDrawingTransform(
+                            Matrix3x2Extensions.CreateRotationDegrees(r.Next(-45, 45), rectCenter)) // Set Rotate
+                        .DrawText(c, font, new Color(new Argb32(0.0f, 0.0f, 1.0f)), rectDrawPoint)); // Draw
+
+                drawPosition.X += option.FontSizePixel * BoxSize; // Next Box
             }
 
-            var r = new Random();
-            textImg.Mutate(ctx => ctx.Transform(new AffineTransformBuilder().AppendMatrix(
-                new System.Numerics.Matrix3x2
-                {
-                    M11 = 0.9f,
-                    M12 = r.Next(-5, 5) / 100f,
-                    M21 = r.Next(-1, 1) / 10f,
-                    M22 = 0.9f,
-                    M31 = 8.0f,
-                    M32 = 45.0f
-                })));
-            
             var textImgCopy = textImg.Clone(); // Fix Access to disposed closure
-            img.Mutate(ctx => ctx.DrawImage(textImgCopy, location: new Point(0, -(textImgCopy.Height / 2)), 1));
+            img.Mutate(ctx => ctx.DrawImage(textImgCopy, location: new Point(0, 0), 1));
         }
 
         private void DrawDisturb(Image img)

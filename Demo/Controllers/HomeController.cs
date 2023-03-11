@@ -21,7 +21,7 @@ namespace Demo.Controllers
             CaptchaInfo c = await _captchaFactory.CreateAsync(new CaptchaOption
             {
                 Type = CaptchaTypes.Numeric | CaptchaTypes.UpperCase,
-                FontSize = 20,
+                FontSizePt = 20,
                 CharCount = 6
             });
             return View(c);

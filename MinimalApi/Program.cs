@@ -47,7 +47,7 @@ app.MapGet("/Captcha", async () =>
             return await captcha.CreateAsync(new CaptchaOption
             {
                 CharCount = 4,
-                FontSize = 20,
+                FontSizePt = 20,
                 Type = CaptchaTypes.Numeric | CaptchaTypes.UpperCase | CaptchaTypes.Symbols
             });
         }
